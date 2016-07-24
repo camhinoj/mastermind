@@ -3,26 +3,54 @@ class Mastermind
 
 	def initialize(player)
 		@player = Player.new(player)
-		@answer = Computer.new.answer
-		@board = Board.new(@answer, @player)
+		@computer = Computer.new
 	end
 
 	def play
-		index = 1 
-		loop do
-			if index > 12
-				puts "You have lost the game"
-				break
+		puts "Creator or Guesser?"
+		choice = gets.chomp
+		index = 1
+		if choice == "creator"
+			#player creates a code
+			#computer does random guesses
+			puts "Enter your code (four colors):"
+			answer = gets.chomp.split(', ')
+			@board = Board.new(answer)
+			#modified original gameplay
+			loop do
+				if index > 12
+					puts "You have won code Creator"
+					@board.display
+					break
+				end
+				@computer.code
+				guess = @computer.answer
+				if @board.add_guess(guess, index)
+					puts "You have lost the game in #{index} tries congrats"
+					@board.display
+					break
+				end
+				index += 1
 			end
-			puts "Enter your guess (four colors of red, green, yellow, purple, pink, or blue seperated by a comma, and the colors can repeat):"
-			guess = gets.chomp.split(', ')
-			if @board.add_guess(guess, index)
-				puts "You have won the game congrats"
-				break
-			else
-				@board.display
+		else
+			#regular gameplay
+			@board = Board.new(@computer.code)
+			loop do
+				if index > 12
+					puts "You have lost the game"
+					break
+				end
+				puts "Enter your guess (four colors of red, green, yellow, purple, pink, or blue seperated by a comma, and the colors can repeat):"
+				guess = gets.chomp.split(', ')
+				if @board.add_guess(guess, index)
+					puts "You have won the game in #{index} tries congrats"
+					@board.answer_display
+					break
+				else
+					@board.display
+				end
+				index += 1
 			end
-			index += 1
 		end
 	end
 
@@ -35,24 +63,23 @@ class Mastermind
 
 		def initialize
 			@colors = { "1" => "red", "2" => "green", "3" => "yellow", "4" => "purple", "5" => "pink", "6" => "blue" }
-			@answer = []
-			create_answer
+			code
 		end
 
-		def create_answer
+		def code
+			@answer = []
 			4.times do
 				@answer << @colors[rand(1..6).to_s]
 			end
-			p @answer
+			@answer
 		end
 	end
 
 	class Board
 		attr_reader :answer
 
-		def initialize(answer, player)
+		def initialize(answer)
 			@answer = answer
-			@player = player
 			create_rows
 			display
 		end
@@ -74,6 +101,10 @@ class Mastermind
 		# 	end
 		# end
 
+		def answer_display
+			puts "----------------------------------------------------------------------------\n" +
+				  	   "|\t#{color(@answer[0])}\t|\t#{color(@answer[1])}\t|\t#{color(@answer[2])}\t|\t#{color(@answer[3])}"
+		end
 
 		def display
 			@rows.reverse.each do |row|
@@ -121,20 +152,29 @@ class Mastermind
 			if guess == @answer
 				return true
 			end
+			result_hash = {"red" => [0, 0], "green" => [0, 0], "yellow" => [0, 0], "purple" => [0, 0], "pink" => [0, 0], "blue" => [0, 0] }
 			black = 0
 			white = 0
+
 			@answer.each do |i|
 				guess.each do |j|
-					white += 1 if i == j
+					result_hash[i][1] += 1 if i == j
 				end
 			end
 			index = 0
 			while index < 3
 				if @answer[index] == guess[index]
-					black += 1
-					white -= 1
+					result_hash[guess[index]][0] += 1
 				end
 				index += 1
+			end
+
+			result_hash.each do |key, value|
+				if value[0] >= 1
+					black += value[0]
+				else
+					white += value[1]
+				end
 			end
 			return [black, white]
 		end
